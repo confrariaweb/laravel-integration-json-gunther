@@ -1,0 +1,30 @@
+{
+    "name": "confrariaweb/laravel-integration-json-gunther",
+    "description": "Motor para todos os componentes",
+    "keywords": [
+        "framework",
+        "laravel"
+    ],
+    "license": "MIT",
+    "type": "package",
+    "authors": [
+        {
+            "name": "Rafael Zingano",
+            "email": "confrariaweb@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "ConfrariaWeb\\IntegrationJsonGunther\\": "src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ConfrariaWeb\\IntegrationJsonGunther\\Providers\\IntegrationJsonGuntherServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev"
+}
