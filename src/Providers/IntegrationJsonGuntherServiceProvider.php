@@ -3,7 +3,7 @@
 namespace ConfrariaWeb\IntegrationJsonGunther\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use MeridienClube\Meridien\Services\Integrations\JsonGuntherService;
+use ConfrariaWeb\IntegrationJsonGunther\Services\JsonGuntherService;
 
 class IntegrationJsonGuntherServiceProvider extends ServiceProvider
 {

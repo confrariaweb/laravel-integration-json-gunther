@@ -1,8 +1,8 @@
 <?PHP
 
-namespace MeridienClube\Meridien\Services\Integrations;
+namespace ConfrariaWeb\IntegrationJsonGunther\Services;
 
-use MeridienClube\Meridien\Services\Contracts\IntegrationContract;
+use ConfrariaWeb\Integration\Services\Contracts\IntegrationContract;
 use Carbon\Carbon;
 
 class JsonGuntherService implements IntegrationContract
