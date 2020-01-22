@@ -3,7 +3,7 @@
 namespace ConfrariaWeb\IntegrationJsonGunther\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use ConfrariaWeb\IntegrationJsonGunther\Services\JsonGuntherService;
+use ConfrariaWeb\IntegrationJsonGunther\Services\IntegrationJsonGuntherService;
 
 class IntegrationJsonGuntherServiceProvider extends ServiceProvider
 {
@@ -15,8 +15,8 @@ class IntegrationJsonGuntherServiceProvider extends ServiceProvider
 
     public function register()
     {
-        $this->app->bind('JsonGuntherService', function () {
-            return new JsonGuntherService();
+        $this->app->bind('IntegrationJsonGuntherService', function () {
+            return new IntegrationJsonGuntherService();
         });
     }
 
