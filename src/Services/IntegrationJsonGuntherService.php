@@ -40,8 +40,12 @@ class IntegrationJsonGuntherService implements IntegrationContract
 
         foreach ($this->json_decode as $jDecode) {
 
-            //$jDecode['sync']['optionsValues'] = $jDecode;
-            //$jDecode['sync']['optionsValues'] = $jDecode;
+            $jDecode['sync']['optionsValues'] = $jDecode;
+
+            /*codigo intranet*/
+            if(isset($jDecode['codigo_intranet']) && !empty($jDecode['codigo_intranet'])){
+                $jDecode['sync']['optionsValues']['intranet_code'] = $jDecode['codigo_intranet'];
+            }
 
             /*Contacts*/
             if(isset($jDecode['telefone']) && !empty($jDecode['telefone'])){
@@ -56,7 +60,6 @@ class IntegrationJsonGuntherService implements IntegrationContract
             if(isset($jDecode['email_secundario']) && !empty($jDecode['email_secundario'])){
                 $jDecode['sync']['contacts']['email'] = $jDecode['email_secundario'];
             }
-
             if (isset($jDecode['endereco']) && isset($jDecode['endereco']['cidade'])) {
 
                 /*
