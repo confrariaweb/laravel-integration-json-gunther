@@ -5,7 +5,7 @@ namespace ConfrariaWeb\IntegrationJsonGunther\Services;
 use ConfrariaWeb\Integration\Services\Contracts\IntegrationContract;
 use Carbon\Carbon;
 
-class IntegrationJsonGuntherService implements IntegrationContract
+class email_vendedorIntegrationJsonGuntherService implements IntegrationContract
 {
     protected $data = [];
     protected $file_get_contents = [];

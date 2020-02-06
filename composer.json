@@ -1,5 +1,6 @@
 {
     "name": "confrariaweb/laravel-integration-json-gunther",
+    "version": "dev-master",
     "description": "Motor para todos os componentes",
     "keywords": [
         "framework",
