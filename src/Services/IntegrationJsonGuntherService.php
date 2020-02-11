@@ -5,7 +5,7 @@ namespace ConfrariaWeb\IntegrationJsonGunther\Services;
 use ConfrariaWeb\Integration\Services\Contracts\IntegrationContract;
 use Carbon\Carbon;
 
-class email_vendedorIntegrationJsonGuntherService implements IntegrationContract
+class IntegrationJsonGuntherService implements IntegrationContract
 {
     protected $data = [];
     protected $file_get_contents = [];
@@ -17,7 +17,7 @@ class email_vendedorIntegrationJsonGuntherService implements IntegrationContract
             $this->data = $data;
 
             $this->file_get_contents = null;
-            if(isset($this->data['url'])) {
+            if (isset($this->data['url'])) {
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
                 curl_setopt($ch, CURLOPT_URL, $this->data['url']);
@@ -43,22 +43,22 @@ class email_vendedorIntegrationJsonGuntherService implements IntegrationContract
             $jDecode['sync']['optionsValues'] = $jDecode;
 
             /*codigo intranet*/
-            if(isset($jDecode['codigo_intranet']) && !empty($jDecode['codigo_intranet'])){
+            if (isset($jDecode['codigo_intranet']) && !empty($jDecode['codigo_intranet'])) {
                 $jDecode['sync']['optionsValues']['intranet_code'] = $jDecode['codigo_intranet'];
             }
 
             /*Contacts*/
-            if(isset($jDecode['telefone']) && !empty($jDecode['telefone'])){
+            if (isset($jDecode['telefone']) && !empty($jDecode['telefone'])) {
                 $jDecode['sync']['contacts']['phone'] = $jDecode['telefone'];
             }
-            if(isset($jDecode['telefone_celular']) && !empty($jDecode['telefone_celular'])){
+            if (isset($jDecode['telefone_celular']) && !empty($jDecode['telefone_celular'])) {
                 $jDecode['sync']['contacts']['cellphone'] = $jDecode['telefone_celular'];
             }
-            if(isset($jDecode['email']) && !empty($jDecode['email'])){
-                $jDecode['sync']['contacts']['email'] = $jDecode['email'];
+            if (isset($jDecode['email']) && !empty($jDecode['email'])) {
+                $jDecode['sync']['contacts']['email'][] = $jDecode['email'];
             }
-            if(isset($jDecode['email_secundario']) && !empty($jDecode['email_secundario'])){
-                $jDecode['sync']['contacts']['email'] = $jDecode['email_secundario'];
+            if (isset($jDecode['email_secundario']) && !empty($jDecode['email_secundario'])) {
+                $jDecode['sync']['contacts']['email'][] = $jDecode['email_secundario'];
             }
             if (isset($jDecode['endereco']) && isset($jDecode['endereco']['cidade'])) {
 
@@ -99,8 +99,8 @@ class email_vendedorIntegrationJsonGuntherService implements IntegrationContract
                 $data['city'] = $jDecode['endereco']['cidade'];
                 $data['neighborhood'] = $jDecode['endereco']['bairro'];
                 $logradouro = explode(',', $jDecode['endereco']['logradouro']);
-                $data['street'] = isset($logradouro[0])? $logradouro[0] : NULL;
-                $data['number'] = isset($logradouro[1])? $logradouro[1] : NULL;
+                $data['street'] = isset($logradouro[0]) ? $logradouro[0] : NULL;
+                $data['number'] = isset($logradouro[1]) ? $logradouro[1] : NULL;
                 $data['postal_code'] = $jDecode['endereco']['cep'];
 
                 //$jDecode['sync']['address'] = resolve('AddressService')->prepareData($data);
@@ -161,8 +161,8 @@ class email_vendedorIntegrationJsonGuntherService implements IntegrationContract
     {
         $fileds = collect(isset($this->json_decode[0]) ? array_keys($this->json_decode[0]) : null)
             ->mapWithKeys(function ($item) {
-            return [strtolower($item) => __(ucfirst($item))];
-        });
+                return [strtolower($item) => __(ucfirst($item))];
+            });
         return $fileds;
 
     }
