@@ -116,10 +116,12 @@ class IntegrationJsonGuntherService implements IntegrationContract
             }
 
             if (isset($jDecode['indicador'])) {
-                $indicator = resolve('UserService')->findBy('option.codigo_intranet', $jDecode['indicador']['codigo_intranet']);
+                //$indicator = resolve('UserService')->findBy('option.codigo_intranet', $jDecode['indicador']['codigo_intranet']);
+                $indicator = resolve('UserService')->findBy('email', $jDecode['indicador']['email']);
+                //dd($indicator);
                 if ($indicator) {
                     //$jDecode['sync']['$indicator'] = $indicator->id;
-                    $jDecode['syncWithoutDetaching']['indicator'] = $indicator->id;
+                    $jDecode['sync']['indicator'] = $indicator->id;
                 }
             }
 
