@@ -37,7 +37,9 @@ class IntegrationJsonGuntherService implements IntegrationContract
     public function get()
     {
         $userCollect = [];
-
+        if (!$this->json_decode) {
+            return collect($userCollect);
+        }
         foreach ($this->json_decode as $jDecode) {
 
             $jDecode['sync']['optionsValues'] = $jDecode;
