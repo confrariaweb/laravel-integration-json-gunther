@@ -4,6 +4,8 @@ namespace ConfrariaWeb\IntegrationJsonGunther\Services;
 
 use ConfrariaWeb\Integration\Services\Contracts\IntegrationContract;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Log;
 
 class IntegrationJsonGuntherService implements IntegrationContract
 {
@@ -15,22 +17,14 @@ class IntegrationJsonGuntherService implements IntegrationContract
     {
         try {
             $this->data = $data;
-
-            $this->file_get_contents = null;
+            $this->file_get_contents = [];
             if (isset($this->data['url'])) {
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_URL, $this->data['url']);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US) AppleWebKit/525.13 (KHTML, like Gecko) Chrome/0.A.B.C Safari/525.13");
-                $this->file_get_contents = curl_exec($ch);
-                curl_close($ch);
+                $client = new Client();
+                $response = $client->request('GET', $this->data['url']);
+                $this->json_decode = json_decode($response->getBody(), true);
             }
-
-            //$this->file_get_contents = isset($this->data['url']) ? file_get_contents($this->data['url'],true) : null;
-            $this->json_decode = json_decode($this->file_get_contents, true);
         } catch (Exception $e) {
-
+            Log::error('Erro ao tentar importar informações do sistema Gunther');
         }
     }
 
@@ -40,6 +34,7 @@ class IntegrationJsonGuntherService implements IntegrationContract
         if (!$this->json_decode) {
             return collect($userCollect);
         }
+
         foreach ($this->json_decode as $jDecode) {
 
             $jDecode['sync']['optionsValues'] = $jDecode;
@@ -119,7 +114,7 @@ class IntegrationJsonGuntherService implements IntegrationContract
 
             if (isset($jDecode['indicador'])) {
                 //$indicator = resolve('UserService')->findBy('option.codigo_intranet', $jDecode['indicador']['codigo_intranet']);
-                $indicator = resolve('UserService')->findBy('email', $jDecode['indicador']['email']);
+                $indicator = resolve('MeridienUserService')->findBy('email', $jDecode['indicador']['email']);
                 //dd($indicator);
                 if ($indicator) {
                     //$jDecode['sync']['$indicator'] = $indicator->id;
