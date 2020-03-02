@@ -6,23 +6,17 @@ use ConfrariaWeb\Integration\Services\Contracts\IntegrationContract;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\LazyCollection;
+use Illuminate\Support\Str;
 
 class IntegrationJsonGuntherService implements IntegrationContract
 {
     protected $data = [];
-    protected $file_get_contents = [];
-    protected $json_decode = [];
 
     public function set(Array $data)
     {
         try {
             $this->data = $data;
-            $this->file_get_contents = [];
-            if (isset($this->data['url'])) {
-                $client = new Client();
-                $response = $client->request('GET', $this->data['url']);
-                $this->json_decode = json_decode($response->getBody(), true);
-            }
         } catch (Exception $e) {
             Log::error('Erro ao tentar importar informações do sistema Gunther');
         }
@@ -31,143 +25,105 @@ class IntegrationJsonGuntherService implements IntegrationContract
     public function get()
     {
         $userCollect = [];
-        if (!$this->json_decode) {
+        if (!$this->data['url']) {
             return collect($userCollect);
         }
-
-        foreach ($this->json_decode as $jDecode) {
-
-            $jDecode['sync']['optionsValues'] = $jDecode;
-
-            /*codigo intranet*/
-            if (isset($jDecode['codigo_intranet']) && !empty($jDecode['codigo_intranet'])) {
-                $jDecode['sync']['optionsValues']['intranet_code'] = $jDecode['codigo_intranet'];
-            }
-
-            /*Contacts*/
-            if (isset($jDecode['telefone']) && !empty($jDecode['telefone'])) {
-                $jDecode['sync']['contacts']['phone'] = $jDecode['telefone'];
-            }
-            if (isset($jDecode['telefone_celular']) && !empty($jDecode['telefone_celular'])) {
-                $jDecode['sync']['contacts']['cellphone'] = $jDecode['telefone_celular'];
-            }
-            if (isset($jDecode['email']) && !empty($jDecode['email'])) {
-                $jDecode['sync']['contacts']['email'][] = $jDecode['email'];
-            }
-            if (isset($jDecode['email_secundario']) && !empty($jDecode['email_secundario'])) {
-                $jDecode['sync']['contacts']['email'][] = $jDecode['email_secundario'];
-            }
-            if (isset($jDecode['endereco']) && isset($jDecode['endereco']['cidade'])) {
-
-                /*
-                $data['country_id'] = config('erp.address.default.country');
-
-                $state = resolve('StateService')->findBy('code', $jDecode['endereco']['uf']);
-                $data['state_id'] = isset($state) ? $state->id : config('erp.address.default.state');
-
-                $city = resolve('CityService')->findBy('name', $jDecode['endereco']['cidade']);
-                if (!$city && isset($jDecode['endereco']['cidade'])) {
-                    $city = resolve('CityService')->create([
-                        'state_id' => $data['state_id'],
-                        'name' => $jDecode['endereco']['cidade']
-                    ]);
-                }
-                $data['syncs']['address']['city_id'] = isset($city) ? $city->id : config('erp.address.default.city');
-
-                $neighborhood = resolve('NeighborhoodService')->findBy('name', $jDecode['endereco']['bairro']);
-                if (!$neighborhood && isset($jDecode['endereco']['bairro'])) {
-                    $neighborhood = resolve('NeighborhoodService')->create([
-                        'name' => $jDecode['endereco']['bairro']
-                    ]);
-                }
-                $data['syncs']['address']['neighborhood_id'] = isset($neighborhood) ? $neighborhood->id : config('erp.address.default.neighborhood');
-
-                $logradouro = explode(',', $jDecode['endereco']['logradouro']);
-                $data['syncs']['address']['street'] = isset($logradouro[0])? $logradouro[0] : NULL;
-                $data['syncs']['address']['number'] = isset($logradouro[1])? $logradouro[1] : NULL;
-                //$data['syncs']['address']['complement'] = isset($logradouro[1])? explode('-', $logradouro[1]) : NULL;
-                $data['syncs']['address']['postal_code'] = $jDecode['endereco']['cep'];
-
-                $jDecode['sync'] = $data['syncs'];
-
-                */
-
-                $data['state_code'] = $jDecode['endereco']['uf'];
-                $data['city'] = $jDecode['endereco']['cidade'];
-                $data['neighborhood'] = $jDecode['endereco']['bairro'];
-                $logradouro = explode(',', $jDecode['endereco']['logradouro']);
-                $data['street'] = isset($logradouro[0]) ? $logradouro[0] : NULL;
-                $data['number'] = isset($logradouro[1]) ? $logradouro[1] : NULL;
-                $data['postal_code'] = $jDecode['endereco']['cep'];
-
-                //$jDecode['sync']['address'] = resolve('AddressService')->prepareData($data);
-                //dd($jDecode['sync']['address']);
-            }
-
-            if (isset($jDecode['email_vendedor'])) {
-                $for_base = resolve('UserService')->findBy('email', $jDecode['email_vendedor']);
-                if ($for_base) {
-                    //$jDecode['attach']['for_base'] = $for_base->id;
-                    $jDecode['syncWithoutDetaching']['for_base'] = $for_base->id;
+        $url = $this->data['url'];
+        $userCollect = LazyCollection::make(function () use ($url) {
+            $limit = 500; //Quantidade de registros
+            $offset = 0; //Inicia deste registro
+            $client = new Client();
+            $continua = true;
+            while ($continua) {
+                $url_m = $url . '&limit=' . $offset . ',' . $limit;
+                $response = $client->request('GET', $url_m);
+                $lines = collect(json_decode($response->getBody(), true));
+                $offset = $offset + $limit;
+                $continua = ($lines->count() > 0);
+                //$continua = ($lines->count() > 0 && $offset < 10);
+                foreach ($lines as $line) {
+                    yield $line;
                 }
             }
-
-            if (isset($jDecode['indicador'])) {
-                //$indicator = resolve('UserService')->findBy('option.codigo_intranet', $jDecode['indicador']['codigo_intranet']);
-                $indicator = resolve('MeridienUserService')->findBy('email', $jDecode['indicador']['email']);
-                //dd($indicator);
-                if ($indicator) {
-                    //$jDecode['sync']['$indicator'] = $indicator->id;
-                    $jDecode['sync']['indicator'] = $indicator->id;
+        })
+            ->map(function ($line) {
+                $jDecode = [];
+                if (isset($line['codigo_intranet']) && !empty($line['codigo_intranet'])) {
+                    $jDecode['sync']['optionsValues']['intranet_code'] = $line['codigo_intranet'];
                 }
-            }
+                if (isset($line['telefone']) && !empty($line['telefone'])) {
+                    $jDecode['sync']['contacts']['phone'] = $line['telefone'];
+                }
+                if (isset($line['telefone_celular']) && !empty($line['telefone_celular'])) {
+                    $jDecode['sync']['contacts']['cellphone'] = $line['telefone_celular'];
+                }
+                if (isset($line['email']) && !empty($line['email'])) {
+                    $jDecode['sync']['contacts']['email'][] = $line['email'];
+                }
+                if (isset($line['email_secundario']) && !empty($line['email_secundario'])) {
+                    $jDecode['sync']['contacts']['email'][] = $line['email_secundario'];
+                }
+                if (isset($line['email_vendedor'])) {
+                    $for_base = resolve('UserService')->findBy('email', $line['email_vendedor']);
+                    if ($for_base) {
+                        //$jDecode['syncWithoutDetaching']['for_base'] = $for_base->id;
+                        $jDecode['sync']['baseOwner'] = $for_base->id;
+                    }
+                }
+                if (isset($line['indicador'])) {
+                    $indicator = resolve('MeridienUserService')->findBy('email', $line['indicador']['email']);
+                    if ($indicator) {
+                        $jDecode['sync']['indicator'] = $indicator->id;
+                    }
+                }
+                /*Tenho que validar por data aqui para nao entrar repetidos*/
+                if (isset($line['historico'])) {
+                    foreach ($line['historico'] as $k => $historic) {
+                        $jDecode['attach']['historics'][$k] = [
+                            'created_at' => new Carbon($historic['data'] . ' ' . $historic['hora']),
+                            'title' => Str::title($historic['usuario'] . ' via sistema antigo'),
+                            'data' => [
+                                'action' => 'imported.from.gunther',
+                                'content' => $historic['usuario'] . ' - ' . $historic['historico']
+                            ]
+                        ];
+                    }
+                }
 
-            foreach ($jDecode['historico'] as $k => $historic) {
-                $jDecode['attach']['historics'][$k] = [
-                    'created_at' => new Carbon($historic['data'] . ' ' . $historic['hora']),
-                    'title' => 'integrations.imported.from.gunther',
-                    'data' => [
-                        'action' => 'imported.from.gunther',
-                        'content' => __('created.by') . ' ' . $historic['usuario'] . ' - ' . $historic['historico']
-                    ]
-                ];
-            }
+                if (
+                    !isset($line['nome']) ||
+                    empty($line['nome']) ||
+                    !is_string($line['nome']) ||
+                    is_null($line['nome'])
+                ) {
+                    $jDecode['nome'] = isset($line['email']) ? stristr($line['email'], '@', true) : 'Sem nome';
+                }
+                unset($line['historico']);
+                unset($line['endereco']);
+                unset($line['email']);
+                return array_merge_recursive($jDecode, $line);
+            });
 
-            unset($jDecode['historico']);
-            unset($jDecode['endereco']);
-            unset($jDecode['email']);
-
-            if (
-                !isset($jDecode['nome']) ||
-                $jDecode['nome'] == 'null' ||
-                $jDecode['nome'] == null ||
-                $jDecode['nome'] == '' ||
-                empty($jDecode['nome']) ||
-                !is_string($jDecode['nome']) ||
-                is_null($jDecode['nome'])
-            ) {
-                $jDecode['nome'] = 'Sem nome';
-            }
-
-            //$userCollect[] = $jDecode;
-            $userCollect[] = array_merge_recursive($this->data, $jDecode);
-
-        }
-        return collect($userCollect);
+        return collect($userCollect->all());
     }
 
     public function fields()
     {
-        $fileds = collect(isset($this->json_decode[0]) ? array_keys($this->json_decode[0]) : null)
-            ->mapWithKeys(function ($item) {
-                return [strtolower($item) => __(ucfirst($item))];
+        $fileds = [];
+        if (isset($this->data['url'])) {
+            $client = new Client();
+            $response = $client->request('GET', $this->data['url'] . '&limit=100,1');
+            $this->json_decode = json_decode($response->getBody(), true);
+            $fileds = collect(array_keys($this->json_decode[0]))->mapWithKeys(function ($item) {
+                return [strtolower($item) => str_replace('_', ' ', ucfirst($item))];
             });
+        }
         return $fileds;
 
     }
 
     public function test()
     {
-        return ($this->file_get_contents) ? true : false;
+        return true;
     }
 }
