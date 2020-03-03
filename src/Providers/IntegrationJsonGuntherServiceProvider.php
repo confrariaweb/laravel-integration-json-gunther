@@ -10,7 +10,7 @@ class IntegrationJsonGuntherServiceProvider extends ServiceProvider
 
     public function boot()
     {
-
+        $this->loadViewsFrom(__DIR__ . '/../Views', 'integrationJsonGunther');
     }
 
     public function register()

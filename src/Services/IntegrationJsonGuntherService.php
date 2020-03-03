@@ -2,6 +2,7 @@
 
 namespace ConfrariaWeb\IntegrationJsonGunther\Services;
 
+use ConfrariaWeb\Historic\Models\Historic;
 use ConfrariaWeb\Integration\Services\Contracts\IntegrationContract;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
@@ -25,22 +26,21 @@ class IntegrationJsonGuntherService implements IntegrationContract
     public function get()
     {
         $userCollect = [];
-        if (!$this->data['url']) {
+        if (!isset($this->data['endpoint']) || !isset($this->data['token'])) {
             return collect($userCollect);
         }
-        $url = $this->data['url'];
-        $userCollect = LazyCollection::make(function () use ($url) {
-            $limit = 500; //Quantidade de registros
-            $offset = 0; //Inicia deste registro
+        $limit = $this->data['limit_y']?? 500; //Quantidade de registros
+        $offset = $this->data['limit_x']?? 0; //Inicia deste registro
+        $userCollect = LazyCollection::make(function () use($limit, $offset) {
             $client = new Client();
             $continua = true;
             while ($continua) {
-                $url_m = $url . '&limit=' . $offset . ',' . $limit;
+                $url_m = $this->url($this->data, $limit, $offset);
+                echo $url_m . ' | ';
                 $response = $client->request('GET', $url_m);
                 $lines = collect(json_decode($response->getBody(), true));
                 $offset = $offset + $limit;
                 $continua = ($lines->count() > 0);
-                //$continua = ($lines->count() > 0 && $offset < 10);
                 foreach ($lines as $line) {
                     yield $line;
                 }
@@ -66,8 +66,8 @@ class IntegrationJsonGuntherService implements IntegrationContract
                 if (isset($line['email_vendedor'])) {
                     $for_base = resolve('UserService')->findBy('email', $line['email_vendedor']);
                     if ($for_base) {
-                        //$jDecode['syncWithoutDetaching']['for_base'] = $for_base->id;
-                        $jDecode['sync']['baseOwner'] = $for_base->id;
+                        $jDecode['syncWithoutDetaching']['for_base'] = $for_base->id;
+                        //$jDecode['sync']['baseOwner'] = $for_base->id;
                     }
                 }
                 if (isset($line['indicador'])) {
@@ -76,20 +76,27 @@ class IntegrationJsonGuntherService implements IntegrationContract
                         $jDecode['sync']['indicator'] = $indicator->id;
                     }
                 }
-                /*Tenho que validar por data aqui para nao entrar repetidos*/
+                /*
                 if (isset($line['historico'])) {
                     foreach ($line['historico'] as $k => $historic) {
-                        $jDecode['attach']['historics'][$k] = [
-                            'created_at' => new Carbon($historic['data'] . ' ' . $historic['hora']),
-                            'title' => Str::title($historic['usuario'] . ' via sistema antigo'),
-                            'data' => [
-                                'action' => 'imported.from.gunther',
-                                'content' => $historic['usuario'] . ' - ' . $historic['historico']
-                            ]
-                        ];
+                        $title = Str::title($historic['usuario'] . ' via sistema antigo');
+                        $doesntExist = Historic::where('title', $title)
+                            ->whereDate('created_at', $historic['data'])
+                            ->whereTime('created_at', $historic['hora'])
+                            ->doesntExist();
+                        if ($doesntExist) {
+                            $jDecode['attach']['historics'][$k] = [
+                                'created_at' => new Carbon($historic['data'] . ' ' . $historic['hora']),
+                                'title' => $title,
+                                'data' => [
+                                    'action' => 'imported.from.gunther',
+                                    'content' => $historic['usuario'] . ' - ' . $historic['historico']
+                                ]
+                            ];
+                        }
                     }
                 }
-
+                */
                 if (
                     !isset($line['nome']) ||
                     empty($line['nome']) ||
@@ -110,9 +117,10 @@ class IntegrationJsonGuntherService implements IntegrationContract
     public function fields()
     {
         $fileds = [];
-        if (isset($this->data['url'])) {
+        $url = $this->url($this->data, 1, 0);
+        if (isset($url)) {
             $client = new Client();
-            $response = $client->request('GET', $this->data['url'] . '&limit=100,1');
+            $response = $client->request('GET', $url);
             $this->json_decode = json_decode($response->getBody(), true);
             $fileds = collect(array_keys($this->json_decode[0]))->mapWithKeys(function ($item) {
                 return [strtolower($item) => str_replace('_', ' ', ucfirst($item))];
@@ -125,5 +133,34 @@ class IntegrationJsonGuntherService implements IntegrationContract
     public function test()
     {
         return true;
+    }
+
+    public function url($options, $limit = 1, $offset = 0){
+        if (!isset($options['endpoint']) || !isset($options['token'])) {
+            return NULL;
+        }
+        $url = $options['endpoint'] . '?';
+        $url .= 'token=' . $options['token'];
+        if(isset($options['environment'])){
+            $url .= '&environment=' . $options['environment'];
+        }
+        if(isset($options['function'])){
+            $url .= '&function=' . $options['function'];
+        }
+        if(isset($options['status'])){
+            $url .= '&status=' . $options['status'];
+        }
+        if(isset($options['param'])){
+            $url .= '&param=' . $options['param'];
+        }
+        if(isset($options['value'])){
+            $url .= '&value=' . $options['value'];
+        }
+        if(isset($options['emailVendedor'])){
+            $url .= '&emailVendedor=' . $options['emailVendedor'];
+        }
+        $url .= '&limit=' . $offset . ',' . $limit;
+
+        return $url;
     }
 }
