@@ -29,14 +29,14 @@ class IntegrationJsonGuntherService implements IntegrationContract
         if (!isset($this->data['endpoint']) || !isset($this->data['token'])) {
             return collect($userCollect);
         }
-        $limit = $this->data['limit_y']?? 500; //Quantidade de registros
-        $offset = $this->data['limit_x']?? 0; //Inicia deste registro
-        $userCollect = LazyCollection::make(function () use($limit, $offset) {
+        $limit = $this->data['limit_y'] ?? 500; //Quantidade de registros
+        $offset = $this->data['limit_x'] ?? 0; //Inicia deste registro
+        $userCollect = LazyCollection::make(function () use ($limit, $offset) {
             $client = new Client();
             $continua = true;
             while ($continua) {
                 $url_m = $this->url($this->data, $limit, $offset);
-                echo $url_m . ' | ';
+                //echo $url_m . ' | ';
                 $response = $client->request('GET', $url_m);
                 $lines = collect(json_decode($response->getBody(), true));
                 $offset = $offset + $limit;
@@ -76,27 +76,29 @@ class IntegrationJsonGuntherService implements IntegrationContract
                         $jDecode['sync']['indicator'] = $indicator->id;
                     }
                 }
-                /*
+
                 if (isset($line['historico'])) {
                     foreach ($line['historico'] as $k => $historic) {
                         $title = Str::title($historic['usuario'] . ' via sistema antigo');
-                        $doesntExist = Historic::where('title', $title)
+
+                        /*$doesntExist = Historic::where('title', $title)
                             ->whereDate('created_at', $historic['data'])
                             ->whereTime('created_at', $historic['hora'])
                             ->doesntExist();
                         if ($doesntExist) {
-                            $jDecode['attach']['historics'][$k] = [
-                                'created_at' => new Carbon($historic['data'] . ' ' . $historic['hora']),
-                                'title' => $title,
-                                'data' => [
-                                    'action' => 'imported.from.gunther',
-                                    'content' => $historic['usuario'] . ' - ' . $historic['historico']
-                                ]
-                            ];
-                        }
+                        }*/
+
+                        $jDecode['attach']['historics'][] = [
+                            'created_at' => new Carbon($historic['data'] . ' ' . $historic['hora']),
+                            'title' => $title,
+                            'data' => [
+                                'action' => 'imported.from.gunther',
+                                'content' => $historic['usuario'] . ' - ' . $historic['historico']
+                            ]
+                        ];
                     }
                 }
-                */
+
                 if (
                     !isset($line['nome']) ||
                     empty($line['nome']) ||
@@ -127,7 +129,6 @@ class IntegrationJsonGuntherService implements IntegrationContract
             });
         }
         return $fileds;
-
     }
 
     public function test()
@@ -135,28 +136,29 @@ class IntegrationJsonGuntherService implements IntegrationContract
         return true;
     }
 
-    public function url($options, $limit = 1, $offset = 0){
+    public function url($options, $limit = 1, $offset = 0)
+    {
         if (!isset($options['endpoint']) || !isset($options['token'])) {
             return NULL;
         }
         $url = $options['endpoint'] . '?';
         $url .= 'token=' . $options['token'];
-        if(isset($options['environment'])){
+        if (isset($options['environment'])) {
             $url .= '&environment=' . $options['environment'];
         }
-        if(isset($options['function'])){
+        if (isset($options['function'])) {
             $url .= '&function=' . $options['function'];
         }
-        if(isset($options['status'])){
+        if (isset($options['status'])) {
             $url .= '&status=' . $options['status'];
         }
-        if(isset($options['param'])){
+        if (isset($options['param'])) {
             $url .= '&param=' . $options['param'];
         }
-        if(isset($options['value'])){
+        if (isset($options['value'])) {
             $url .= '&value=' . $options['value'];
         }
-        if(isset($options['emailVendedor'])){
+        if (isset($options['emailVendedor'])) {
             $url .= '&emailVendedor=' . $options['emailVendedor'];
         }
         $url .= '&limit=' . $offset . ',' . $limit;
