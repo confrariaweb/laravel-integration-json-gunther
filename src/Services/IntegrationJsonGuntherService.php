@@ -26,7 +26,7 @@ class IntegrationJsonGuntherService implements IntegrationContract
     public function get()
     {
         $userCollect = [];
-        if (!isset($this->data['endpoint']) || !isset($this->data['token'])) {
+        if ((!isset($this->data['endpoint']) || !isset($this->data['token'])) && !isset($this->data['url'])) {
             return collect($userCollect);
         }
         $limit = $this->data['limit_y'] ?? 500; //Quantidade de registros
@@ -36,11 +36,10 @@ class IntegrationJsonGuntherService implements IntegrationContract
             $continua = true;
             while ($continua) {
                 $url_m = $this->url($this->data, $limit, $offset);
-                //echo $url_m . ' | ';
                 $response = $client->request('GET', $url_m);
                 $lines = collect(json_decode($response->getBody(), true));
                 $offset = $offset + $limit;
-                $continua = ($lines->count() > 0);
+                $continua = ($lines->count() > 0 && !isset($this->data['url']));
                 foreach ($lines as $line) {
                     yield $line;
                 }
@@ -93,7 +92,7 @@ class IntegrationJsonGuntherService implements IntegrationContract
                             'title' => $title,
                             'data' => [
                                 'action' => 'imported.from.gunther',
-                                'content' => $historic['usuario'] . ' - ' . $historic['historico']
+                                'content' => $historic['historico']
                             ]
                         ];
                     }
@@ -138,6 +137,9 @@ class IntegrationJsonGuntherService implements IntegrationContract
 
     public function url($options, $limit = 1, $offset = 0)
     {
+        if (isset($options['url'])) {
+            return $options['url'];
+        }
         if (!isset($options['endpoint']) || !isset($options['token'])) {
             return NULL;
         }
