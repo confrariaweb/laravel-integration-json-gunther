@@ -79,14 +79,6 @@ class IntegrationJsonGuntherService implements IntegrationContract
                 if (isset($line['historico'])) {
                     foreach ($line['historico'] as $k => $historic) {
                         $title = Str::title($historic['usuario'] . ' via sistema antigo');
-
-                        /*$doesntExist = Historic::where('title', $title)
-                            ->whereDate('created_at', $historic['data'])
-                            ->whereTime('created_at', $historic['hora'])
-                            ->doesntExist();
-                        if ($doesntExist) {
-                        }*/
-
                         $jDecode['attach']['historics'][] = [
                             'created_at' => new Carbon($historic['data'] . ' ' . $historic['hora']),
                             'title' => $title,
