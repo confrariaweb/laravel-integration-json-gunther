@@ -65,8 +65,7 @@ class IntegrationJsonGuntherService implements IntegrationContract
                 if (isset($line['email_vendedor'])) {
                     $for_base = resolve('UserService')->findBy('email', $line['email_vendedor']);
                     if ($for_base) {
-                        $jDecode['syncWithoutDetaching']['for_base'] = $for_base->id;
-                        //$jDecode['sync']['baseOwner'] = $for_base->id;
+                        $jDecode['sync']['baseOwner'] = $for_base->id;
                     }
                 }
                 if (isset($line['indicador'])) {
